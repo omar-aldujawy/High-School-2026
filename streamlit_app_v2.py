@@ -306,7 +306,7 @@ with tab_stats:
 # التبويب الرابع: مقارنة مع السنين السابقة
 # =============================================================================
 with tab_compare_years:
-    st.subheader("📈 مقارنة توزيع النسب المئوية للطلاب (2024 VS 2025 VS 2026)")
+    st.subheader("📈 مقارنة توزيع النسب المئوية للطلاب (2024 - 2025 - 2026)")
 
     YEARS = [2024, 2025, 2026]
     CONFIG = {
@@ -333,7 +333,7 @@ with tab_compare_years:
     @st.cache_data(ttl=3600)
     def load_and_bin_years():
         binned_data = {}
-        bins = list(range(0, 101, 10))
+        bins = list(range(0, 101, 5))
 
         for year in YEARS:
             cfg = CONFIG[year]
