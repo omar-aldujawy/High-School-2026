@@ -108,7 +108,18 @@ def load_results() -> pd.DataFrame:
     if not RESULTS_FILE.exists():
         return pd.DataFrame()
         
-    df = pd.read_csv(RESULTS_FILE)
+    needed_cols = ["seating_no", "name", "total_degree", "max_degree", "percentage", "rank"]
+    
+    try:
+        # قراءة الأعمدة الأساسية فقط لتخفيض الذاكرة لأقل قدر ممكن
+        df = pd.read_csv(
+            RESULTS_FILE, 
+            usecols=lambda c: c in needed_cols or c in ["year", "student_case_desc", "status"],
+            dtype={"seating_no": str}
+        )
+    except Exception:
+        df = pd.read_csv(RESULTS_FILE)
+
     df["seating_no"] = df["seating_no"].astype(str).str.strip()
 
     if "year" in df.columns:
@@ -118,9 +129,9 @@ def load_results() -> pd.DataFrame:
     if DATA_2026_FILE.exists():
         try:
             try:
-                data_2026 = pd.read_csv(DATA_2026_FILE, encoding='utf-8')
+                data_2026 = pd.read_csv(DATA_2026_FILE, encoding='utf-8', usecols=["seating_no", "student_case_desc"])
             except Exception:
-                data_2026 = pd.read_csv(DATA_2026_FILE, encoding='cp1256')
+                data_2026 = pd.read_csv(DATA_2026_FILE, encoding='cp1256', usecols=["seating_no", "student_case_desc"])
 
             data_2026, _ = smart_rename(data_2026, COLUMN_KEYWORDS)
             
@@ -247,7 +258,7 @@ with tab_board:
     )
 
 # =============================================================================
-# التبويب الثالث: إحصائيات السنة (توزيع: ناجح - ساقط - دور تاني)
+# التبويب الثالث: إحصائيات السنة
 # =============================================================================
 with tab_stats:
     col_stat1, col_stat2 = st.columns(2)
