@@ -37,7 +37,7 @@ st.markdown(
 )
 
 APP_DIR = Path(__file__).parent
-RESULTS_FILE = APP_DIR / "all_students_results.csv"
+RESULTS_FILE = APP_DIR / "all_students_results.csv.gz"
 DATA_2026_FILE = APP_DIR / "2026.csv"
 SUMMARY_FILE = APP_DIR / "summary_by_year.csv"
 
