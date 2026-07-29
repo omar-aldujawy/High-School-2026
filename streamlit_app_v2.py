@@ -90,7 +90,7 @@ def get_student_status(row: pd.Series) -> str:
         row.get("student_case_desc", row.get("status", row.get("original_status", "")))
     ).strip()
     
-    # 1. البحث عن الدور الثاني أولاً (لأن طالب الدور الثاني قد يكون مجموعه أقل من 50%)
+    # 1. البحث عن الدور الثاني أولاً
     if any(kw in case_desc for kw in ["ثان", "تان", "ثاني", "تاني", "دور 2"]):
         return "⚠️ دور تاني"
 
@@ -103,7 +103,7 @@ def get_student_status(row: pd.Series) -> str:
     return "✅ ناجح"
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_results() -> pd.DataFrame:
     if not RESULTS_FILE.exists():
         return pd.DataFrame()
@@ -128,8 +128,8 @@ def load_results() -> pd.DataFrame:
                 data_2026["seating_no"] = data_2026["seating_no"].astype(str).str.strip()
                 case_map = data_2026.set_index("seating_no")["student_case_desc"].to_dict()
                 df["student_case_desc"] = df["seating_no"].map(case_map).fillna(df.get("student_case_desc", "غير محدد"))
-        except Exception as e:
-            st.warning(f"تعذر دمج ملف 2026.csv: {e}")
+        except Exception:
+            pass
 
     df["normalized_name"] = df["name"].apply(normalize_arabic)
     df["final_status"] = df.apply(get_student_status, axis=1)
@@ -143,7 +143,7 @@ st.title(f"🎓 تطبيق نتيجة الطلاب - سنة {TARGET_YEAR}")
 
 if results.empty:
     st.error(
-        f"الملف `all_students_results.csv` غير موجود أو لا يحتوي على بيانات لسنة {TARGET_YEAR}."
+        f"الملف `all_students_results.csv.gz` غير موجود أو لا يحتوي على بيانات لسنة {TARGET_YEAR}."
     )
     st.stop()
 
@@ -236,7 +236,7 @@ with tab_board:
 
     medal = {1: "🥇", 2: "🥈", 3: "🥉"}
     board.insert(0, "", board["الترتيب"].map(medal).fillna(""))
-    st.dataframe(board, use_container_width=True, hide_index=True)
+    st.dataframe(board, width="stretch", hide_index=True)
 
     csv_bytes = board.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
@@ -265,7 +265,7 @@ with tab_stats:
             hovertemplate="<b>المجموع:</b> %{x}<br><b>عدد الطلاب:</b> %{y}<extra></extra>"
         )
         fig_hist.update_layout(height=400)
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hist, width="stretch")
 
     with col_stat2:
         status_df = results["final_status"].value_counts().reset_index()
@@ -289,7 +289,7 @@ with tab_stats:
             hovertemplate="<b>الحالة:</b> %{label}<br><b>العدد:</b> %{value:,}<br><b>النسبة:</b> %{percent}",
         )
         fig_pass_pie.update_layout(height=400)
-        st.plotly_chart(fig_pass_pie, use_container_width=True)
+        st.plotly_chart(fig_pass_pie, width="stretch")
 
 # =============================================================================
 # التبويب الرابع: مقارنة مع السنين السابقة
@@ -319,7 +319,7 @@ with tab_compare_years:
         },
     }
 
-    @st.cache_data
+    @st.cache_data(ttl=3600)
     def load_and_bin_years():
         binned_data = {}
         bins = list(range(0, 101, 10))
@@ -391,7 +391,7 @@ with tab_compare_years:
             height=500,
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.warning(
             "ملفات المقارنة (`mat_2024.csv`, `mat_2025.csv`, `mat_2026.csv`) غير"
@@ -401,15 +401,11 @@ with tab_compare_years:
 # =============================================================================
 # الحقوق والتوقيع (Footer)
 # =============================================================================
-
-
 st.caption(f"مصدر البيانات: نتائج طلاب سنة {TARGET_YEAR}")
 st.markdown(
     "<div class='footer-text'>مع تحيات<br>MDKLi Team @2026</div>",
     unsafe_allow_html=True,
 )
-
-
 
 
 
