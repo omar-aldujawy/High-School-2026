@@ -60,7 +60,7 @@ COLUMN_KEYWORDS = {
     "seating_no": ["جلوس", "seating_no", "seating"],
     "name": ["اسم", "name"],
     "total_degree": ["مجموع", "الدرجة", "الدرجه", "total_degree", "degree"],
-    "student_case_desc": ["حالة الطالب", "الحالة", "student_case_desc", "status"]
+    "student_case_desc": ["حالة الطالب", "الحالة", "student_case_desc", "status"],
 }
 
 
@@ -90,7 +90,7 @@ def get_student_status(row: pd.Series) -> str:
     case_desc = str(
         row.get("student_case_desc", row.get("status", row.get("original_status", "")))
     ).strip()
-    
+
     # 1. البحث عن الدور الثاني أولاً
     if any(kw in case_desc for kw in ["ثان", "تان", "ثاني", "تاني", "دور 2"]):
         return "⚠️ دور تاني"
@@ -262,14 +262,22 @@ def render_cyan_percentage_chart(df, score_column):
 def load_results() -> pd.DataFrame:
     if not RESULTS_FILE.exists():
         return pd.DataFrame()
-        
-    needed_cols = ["seating_no", "name", "total_degree", "max_degree", "percentage", "rank"]
-    
+
+    needed_cols = [
+        "seating_no",
+        "name",
+        "total_degree",
+        "max_degree",
+        "percentage",
+        "rank",
+    ]
+
     try:
         df = pd.read_csv(
-            RESULTS_FILE, 
-            usecols=lambda c: c in needed_cols or c in ["year", "student_case_desc", "status"],
-            dtype={"seating_no": str}
+            RESULTS_FILE,
+            usecols=lambda c: c in needed_cols
+            or c in ["year", "student_case_desc", "status"],
+            dtype={"seating_no": str},
         )
     except Exception:
         df = pd.read_csv(RESULTS_FILE)
@@ -283,16 +291,35 @@ def load_results() -> pd.DataFrame:
     if DATA_2026_FILE.exists():
         try:
             try:
-                data_2026 = pd.read_csv(DATA_2026_FILE, encoding='utf-8', usecols=["seating_no", "student_case_desc"])
+                data_2026 = pd.read_csv(
+                    DATA_2026_FILE,
+                    encoding="utf-8",
+                    usecols=["seating_no", "student_case_desc"],
+                )
             except Exception:
-                data_2026 = pd.read_csv(DATA_2026_FILE, encoding='cp1256', usecols=["seating_no", "student_case_desc"])
+                data_2026 = pd.read_csv(
+                    DATA_2026_FILE,
+                    encoding="cp1256",
+                    usecols=["seating_no", "student_case_desc"],
+                )
 
             data_2026, _ = smart_rename(data_2026, COLUMN_KEYWORDS)
-            
-            if "seating_no" in data_2026.columns and "student_case_desc" in data_2026.columns:
-                data_2026["seating_no"] = data_2026["seating_no"].astype(str).str.strip()
-                case_map = data_2026.set_index("seating_no")["student_case_desc"].to_dict()
-                df["student_case_desc"] = df["seating_no"].map(case_map).fillna(df.get("student_case_desc", "غير محدد"))
+
+            if (
+                "seating_no" in data_2026.columns
+                and "student_case_desc" in data_2026.columns
+            ):
+                data_2026["seating_no"] = (
+                    data_2026["seating_no"].astype(str).str.strip()
+                )
+                case_map = data_2026.set_index("seating_no")[
+                    "student_case_desc"
+                ].to_dict()
+                df["student_case_desc"] = (
+                    df["seating_no"]
+                    .map(case_map)
+                    .fillna(df.get("student_case_desc", "غير محدد"))
+                )
         except Exception:
             pass
 
@@ -401,7 +428,7 @@ with tab_board:
 
     medal = {1: "🥇", 2: "🥈", 3: "🥉"}
     board.insert(0, "", board["الترتيب"].map(medal).fillna(""))
-    st.dataframe(board, width="stretch", hide_index=True)
+    st.dataframe(board, use_container_width=True, hide_index=True)
 
     csv_bytes = board.to_csv(index=False).encode("utf-8-sig")
     st.download_button(
@@ -430,7 +457,7 @@ with tab_stats:
             hovertemplate="<b>المجموع:</b> %{x}<br><b>عدد الطلاب:</b> %{y}<extra></extra>"
         )
         fig_hist.update_layout(height=400)
-        st.plotly_chart(fig_hist, width="stretch")
+        st.plotly_chart(fig_hist, use_container_width=True)
 
     with col_stat2:
         status_df = results["final_status"].value_counts().reset_index()
@@ -454,7 +481,7 @@ with tab_stats:
             hovertemplate="<b>الحالة:</b> %{label}<br><b>العدد:</b> %{value:,}<br><b>النسبة:</b> %{percent}",
         )
         fig_pass_pie.update_layout(height=400)
-        st.plotly_chart(fig_pass_pie, width="stretch")
+        st.plotly_chart(fig_pass_pie, use_container_width=True)
 
     st.markdown("---")
     # عرض بطاقة توزيع النسب المئوية المخصصة
@@ -519,9 +546,15 @@ with tab_compare_years:
                     ):
                         df["pct"] = pcts
                         df["bin"] = pd.cut(df["pct"], bins=bins, include_lowest=True)
-                        binned_series = df.groupby("bin", observed=False)[count_col].sum()
+                        binned_series = df.groupby("bin", observed=False)[
+                            count_col
+                        ].sum()
                     else:
-                        binned_series = pd.cut(pcts, bins=bins, include_lowest=True).value_counts().sort_index()
+                        binned_series = (
+                            pd.cut(pcts, bins=bins, include_lowest=True)
+                            .value_counts()
+                            .sort_index()
+                        )
 
                     binned_data[year] = binned_series
             except Exception:
@@ -534,21 +567,25 @@ with tab_compare_years:
     if binned and len(binned) > 0:
         available_years = list(binned.keys())
         ref_year = available_years[0]
-        ranges = [f"{int(i.left)}–{int(i.right)}" for i in binned[ref_year].index]
+        ranges = [
+            f"{int(i.left)}–{int(i.right)}" for i in binned[ref_year].index
+        ]
 
-        fig = go.Figure(data=[
-            go.Bar(
-                name=str(year),
-                x=ranges,
-                y=binned[year].values,
-                marker_color=CONFIG[year]["color"],
-                hovertemplate=(
-                    f"{year}<br>النسبة: %{{x}}%<br>عدد الطلاب:"
-                    " %{y:,}<extra></extra>"
-                ),
-            )
-            for year in available_years
-        ])
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    name=str(year),
+                    x=ranges,
+                    y=binned[year].values,
+                    marker_color=CONFIG[year]["color"],
+                    hovertemplate=(
+                        f"{year}<br>النسبة: %{{x}}%<br>عدد الطلاب:"
+                        " %{y:,}<extra></extra>"
+                    ),
+                )
+                for year in available_years
+            ]
+        )
 
         fig.update_layout(
             title="<b>2024 VS 2025 VS 2026</b>",
@@ -560,7 +597,7 @@ with tab_compare_years:
             height=500,
         )
 
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig, use_container_width=True)
     else:
         st.warning(
             "ملفات المقارنة (`mat_2024.csv`, `mat_2025.csv`, `mat_2026.csv`) غير"
@@ -575,7 +612,6 @@ st.markdown(
     "<div class='footer-text'>مع تحيات<br>MDKLi Team @2026</div>",
     unsafe_allow_html=True,
 )
-
 
 
 
