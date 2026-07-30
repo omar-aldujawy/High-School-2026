@@ -18,22 +18,22 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# تطبيق اتجاه الكتابة من اليمين لليسار (RTL)
+# تطبيق اتجاه الكتابة من اليمين لليسار (RTL) وتنسيق بطاقات النتائج والـ Footer
 st.markdown(
-    (
-        "<style>"
-        ".stApp, .stMarkdown, .stMetric, h1, h2, h3, p, label { direction: rtl; text-align: right; }"
-        "[data-testid=\"stMetricValue\"] { direction: ltr; }"
-        ".footer-text {"
-        "text-align: center;"
-        "padding: 15px;"
-        "font-weight: bold;"
-        "color: #555555;"
-        "border-top: 1px solid #e6e6e6;"
-        "margin-top: 30px;"
-        "}"
-        "</style>"
-    ),
+    """
+    <style>
+    .stApp, .stMarkdown, .stMetric, h1, h2, h3, p, label { direction: rtl; text-align: right; }
+    [data-testid="stMetricValue"] { direction: ltr; }
+    .footer-text {
+        text-align: center;
+        padding: 15px;
+        font-weight: bold;
+        color: #888888;
+        border-top: 1px solid #e6e6e6;
+        margin-top: 30px;
+    }
+    </style>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -105,16 +105,10 @@ def get_student_status(row: pd.Series) -> str:
 
 
 def render_cyan_percentage_chart(df, score_column):
-    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون لبني مضبوطة الاتجاهات.
-
-    ملاحظة مهمة: كل الأسطر بتتبني من غير أي مسافات بادئة (indentation) في بداية
-    السطر، لأن Streamlit's Markdown parser بيحول أي سطر يبدأ بـ 4 مسافات أو أكتر
-    إلى "code block" ويعرضه كنص خام بدل ما يفسّره كـ HTML. ده كان سبب الـ error
-    اللي كان بيظهر (الأكواد بتتعرض كنص بدل ما تترسم كـ bars).
-    """
+    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون لبني متجاوب."""
     total_count = len(df)
 
-    bins = [-1, 50, 55, 60, 65, 70, 75, 80, 85, 90, 101]
+    bins = [-1, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 101]
     labels = [
         "below-50%",
         "50-55%",
@@ -139,13 +133,13 @@ def render_cyan_percentage_chart(df, score_column):
         "<style>"
         ".stats-card-cyan {"
         "background: linear-gradient(145deg, #0f172a, #1e293b);"
-        "border: 1px solid rgba(56, 189, 248, 0.2);"
-        "border-radius: 24px;"
-        "padding: 28px;"
+        "border: 1px solid rgba(56, 189, 248, 0.25);"
+        "border-radius: 20px;"
+        "padding: 24px;"
         "color: #f8fafc;"
         "font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;"
-        "box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.05);"
-        "max-width: 650px;"
+        "box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.08);"
+        "max-width: 680px;"
         "margin: 20px auto;"
         "direction: rtl;"
         "box-sizing: border-box;"
@@ -154,13 +148,13 @@ def render_cyan_percentage_chart(df, score_column):
         "display: flex;"
         "justify-content: space-between;"
         "align-items: center;"
-        "margin-bottom: 25px;"
-        "padding-bottom: 12px;"
+        "margin-bottom: 20px;"
+        "padding-bottom: 10px;"
         "border-bottom: 1px solid rgba(255, 255, 255, 0.1);"
         "direction: rtl;"
         "}"
         ".stats-title {"
-        "font-size: 20px;"
+        "font-size: 18px;"
         "font-weight: 700;"
         "color: #38bdf8;"
         "}"
@@ -169,23 +163,24 @@ def render_cyan_percentage_chart(df, score_column):
         "color: #94a3b8;"
         "background: rgba(255, 255, 255, 0.05);"
         "padding: 4px 12px;"
-        "border-radius: 12px;"
+        "border-radius: 10px;"
         "}"
         ".stat-row-cyan {"
         "display: flex;"
         "align-items: center;"
         "justify-content: space-between;"
-        "margin-bottom: 14px;"
+        "margin-bottom: 12px;"
         "direction: rtl;"
-        "gap: 10px;"
+        "gap: 12px;"
         "}"
         ".stat-label-cyan {"
-        "font-size: 13px;"
+        "font-size: 12px;"
         "font-weight: 600;"
         "color: #cbd5e1;"
-        "width: 90px;"
+        "width: 85px;"
         "text-align: right;"
         "direction: ltr;"
+        "flex-shrink: 0;"
         "}"
         ".bar-container-cyan {"
         "flex-grow: 1;"
@@ -208,12 +203,13 @@ def render_cyan_percentage_chart(df, score_column):
         "display: flex;"
         "align-items: center;"
         "gap: 6px;"
-        "width: 130px;"
+        "width: 120px;"
         "justify-content: flex-end;"
         "direction: ltr;"
+        "flex-shrink: 0;"
         "}"
         ".stat-count {"
-        "font-size: 13px;"
+        "font-size: 12px;"
         "font-weight: 700;"
         "color: #ffffff;"
         "}"
@@ -222,8 +218,8 @@ def render_cyan_percentage_chart(df, score_column):
         "font-weight: 600;"
         "color: #38bdf8;"
         "background: rgba(56, 189, 248, 0.12);"
-        "padding: 2px 8px;"
-        "border-radius: 8px;"
+        "padding: 2px 6px;"
+        "border-radius: 6px;"
         "border: 1px solid rgba(56, 189, 248, 0.2);"
         "}"
         "</style>"
@@ -233,8 +229,8 @@ def render_cyan_percentage_chart(df, score_column):
         css
         + '<div class="stats-card-cyan">'
         + '<div class="stats-header">'
-        + '<div class="stats-title">توزيع النسب المئوية</div>'
-        + f'<div class="stats-total">الإجمالي: {total_count:,}</div>'
+        + '<div class="stats-title">📊 توزيع النسب المئوية للطلاب</div>'
+        + f'<div class="stats-total">الإجمالي: {total_count:,} طالب</div>'
         + "</div>"
     )
 
@@ -242,10 +238,7 @@ def render_cyan_percentage_chart(df, score_column):
         count = counts[label]
         pct = (count / total_count * 100) if total_count > 0 else 0
 
-        if count >= 1000:
-            formatted_count = f"{count/1000:.1f}K+"
-        else:
-            formatted_count = str(count)
+        formatted_count = f"{count/1000:.1f}K+" if count >= 1000 else str(count)
 
         html_content += (
             '<div class="stat-row-cyan">'
@@ -336,13 +329,16 @@ def load_results() -> pd.DataFrame:
     return df
 
 
+# =============================================================================
+# 2. بناء التطبيق الرئيسي
+# =============================================================================
 results = load_results()
 
 st.title(f"🎓 تطبيق نتيجة الطلاب - سنة {TARGET_YEAR}")
 
 if results.empty:
     st.error(
-        f"الملف `all_students_results.csv.gz` غير موجود أو لا يحتوي على بيانات لسنة {TARGET_YEAR}."
+        f"الملف `{RESULTS_FILE.name}` غير موجود أو لا يحتوي على بيانات لسنة {TARGET_YEAR}."
     )
     st.stop()
 
@@ -362,7 +358,7 @@ with tab_search:
 
     query = st.text_input(
         "رقم الجلوس أو جزء من الاسم",
-        placeholder="مثال: 12345, عمر الدجوي / محمد شادي ",
+        placeholder="مثال: 12345 أو أحمد محمد...",
         key="search_query",
     )
 
@@ -384,7 +380,8 @@ with tab_search:
         if matches.empty:
             st.warning("لا توجد نتيجة مطابقة. تأكد من رقم الجلوس أو الاسم.")
         else:
-            for _, row in matches.sort_values("rank").iterrows():
+            st.caption(f"تم العثور على {len(matches)} نتيجة")
+            for _, row in matches.sort_values("rank").head(50).iterrows():
                 status = row["final_status"]
                 with st.container(border=True):
                     st.markdown(f"### {row['name']}")
@@ -434,7 +431,7 @@ with tab_board:
     )
 
     medal = {1: "🥇", 2: "🥈", 3: "🥉"}
-    board.insert(0, "", board["الترتيب"].map(medal).fillna(""))
+    board.insert(0, " ", board["الترتيب"].map(medal).fillna(""))
     st.dataframe(board, use_container_width=True, hide_index=True)
 
     csv_bytes = board.to_csv(index=False).encode("utf-8-sig")
@@ -458,7 +455,7 @@ with tab_stats:
             nbins=30,
             title=f"<b>توزيع المجموع الكلي للطلاب لسنة {TARGET_YEAR}</b>",
             labels={"total_degree": "المجموع الكلي", "count": "عدد الطلاب"},
-            color_discrete_sequence=["#1F77B4"],
+            color_discrete_sequence=["#38bdf8"],
         )
         fig_hist.update_traces(
             hovertemplate="<b>المجموع:</b> %{x}<br><b>عدد الطلاب:</b> %{y}<extra></extra>"
@@ -595,7 +592,7 @@ with tab_compare_years:
         )
 
         fig.update_layout(
-            title="<b>2024 VS 2025 VS 2026</b>",
+            title="<b>توزيع النسبة المئوية عبر السنوات</b>",
             xaxis_title="نطاق النسبة المئوية (%)",
             yaxis_title="عدد الطلاب",
             barmode="group",
