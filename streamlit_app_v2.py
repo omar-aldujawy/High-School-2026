@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# تطبيق اتجاه الكتابة من اليمين لليسار (RTL) وتنسيق بطاقات النتائج والـ Footer
+# تطبيق اتجاه الكتابة من اليمين لليسار (RTL) وتنسيق الواجهة والـ Footer
 st.markdown(
     """
     <style>
@@ -502,28 +502,134 @@ with tab_stats:
     )
 
 # =============================================================================
-# التبويب الرابع: مقارنة مع السنين السابقة (بطاقات منفصلة)
+# التبويب الرابع: مقارنة مع السنين السابقة (المخطط التجميعي + كروت النيون)
 # =============================================================================
 with tab_compare_years:
-    st.subheader("📈 توزيع النسب المئوية لكل سنة على حدة (2024 - 2025 - 2026)")
+    st.subheader("📈 مقارنة توزيع النسب المئوية للطلاب (2024 VS 2025 VS 2026)")
 
+    YEARS = [2024, 2025, 2026]
     CONFIG = {
         2024: {
             "file": "mat_2024.csv",
             "max_degree": 410,
-            "colors": ("636efa", "a8b1ff"),  # أزرق بنفسجي
+            "color": "#636EFA",
+            "gradient": ("636efa", "a8b1ff"),  # أزرق بنفسجي
+            "encoding": "utf-8",
         },
         2025: {
             "file": "mat_2025.csv",
             "max_degree": 320,
-            "colors": ("ef553b", "ff9e8d"),  # برتقالي محمر
+            "color": "#EF553B",
+            "gradient": ("ef553b", "ff9e8d"),  # برتقالي محمر
+            "encoding": "utf-8",
         },
         2026: {
             "file": "mat_2026.csv",
             "max_degree": 320,
-            "colors": ("00cc96", "73ffda"),  # أخضر نيون
+            "color": "#00CC96",
+            "gradient": ("00cc96", "73ffda"),  # أخضر نيون
+            "encoding": "utf-8",
         },
     }
+
+    # -------------------------------------------------------------------------
+    # 1. الجزء الأول: المخطط شريطي التجميعي (Plotly Bar Chart)
+    # -------------------------------------------------------------------------
+    @st.cache_data(ttl=3600)
+    def load_and_bin_years():
+        binned_data = {}
+        bins = list(range(0, 101, 10))
+
+        for year in YEARS:
+            cfg = CONFIG[year]
+            file_path = APP_DIR / cfg["file"]
+
+            if not file_path.exists():
+                continue
+
+            try:
+                try:
+                    df = pd.read_csv(file_path, encoding=cfg["encoding"])
+                except Exception:
+                    df = pd.read_csv(file_path, encoding="cp1256")
+
+                df, _ = smart_rename(df, COLUMN_KEYWORDS)
+
+                if "total_degree" in df.columns:
+                    count_col = df.columns[1] if len(df.columns) > 1 else None
+                    pcts = (df["total_degree"] / cfg["max_degree"]) * 100
+
+                    if (
+                        count_col
+                        and df[count_col].dtype in ["int64", "float64"]
+                        and count_col != "name"
+                    ):
+                        df["pct"] = pcts
+                        df["bin"] = pd.cut(df["pct"], bins=bins, include_lowest=True)
+                        binned_series = df.groupby("bin", observed=False)[
+                            count_col
+                        ].sum()
+                    else:
+                        binned_series = (
+                            pd.cut(pcts, bins=bins, include_lowest=True)
+                            .value_counts()
+                            .sort_index()
+                        )
+
+                    binned_data[year] = binned_series
+            except Exception:
+                pass
+
+        return binned_data
+
+    binned = load_and_bin_years()
+
+    if binned and len(binned) > 0:
+        available_years = list(binned.keys())
+        ref_year = available_years[0]
+        ranges = [
+            f"{int(i.left)}–{int(i.right)}" for i in binned[ref_year].index
+        ]
+
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    name=str(year),
+                    x=ranges,
+                    y=binned[year].values,
+                    marker_color=CONFIG[year]["color"],
+                    hovertemplate=(
+                        f"{year}<br>النسبة: %{{x}}%<br>عدد الطلاب:"
+                        " %{y:,}<extra></extra>"
+                    ),
+                )
+                for year in available_years
+            ]
+        )
+
+        fig.update_layout(
+            title="<b>توزيع النسبة المئوية عبر السنوات (مقارنة مباشرة)</b>",
+            xaxis_title="نطاق النسبة المئوية (%)",
+            yaxis_title="عدد الطلاب",
+            barmode="group",
+            template="plotly_white",
+            hovermode="x",
+            height=450,
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning(
+            "ملفات المقارنة (`mat_2024.csv`, `mat_2025.csv`, `mat_2026.csv`) غير"
+            " متوفرة أو بها مشكلة في التنسيق لعرض المقارنة."
+        )
+
+    st.markdown("---")
+
+    # -------------------------------------------------------------------------
+    # 2. الجزء الثاني: كروت النيون المخصصة لكل سنة منفصلة
+    # -------------------------------------------------------------------------
+    st.subheader("📊 التفاصيل الدقيقة لكروت النسب المئوية لكل سنة")
 
     @st.cache_data(ttl=3600)
     def load_year_df(year):
@@ -538,7 +644,7 @@ with tab_compare_years:
 
         try:
             try:
-                df = pd.read_csv(file_path, encoding="utf-8")
+                df = pd.read_csv(file_path, encoding=cfg["encoding"])
             except Exception:
                 df = pd.read_csv(file_path, encoding="cp1256")
 
@@ -557,12 +663,12 @@ with tab_compare_years:
     df_2026 = load_year_df(2026)
 
     view_option = st.radio(
-        "طريقة عرض المقارنة:",
-        ["بطاقات منفصلة جنبًا إلى جنب (3 أعمدة)", "تبويبات منفصلة لكل سنة"],
+        "طريقة عرض الكروت التفصيلية:",
+        ["بطاقات جنبًا إلى جنب (3 أعمدة)", "تبويبات فرعية لكل سنة"],
         horizontal=True,
     )
 
-    if view_option == "بطاقات منفصلة جنبًا إلى جنب (3 أعمدة)":
+    if view_option == "بطاقات جنبًا إلى جنب (3 أعمدة)":
         c1, c2, c3 = st.columns(3)
 
         with c1:
@@ -571,7 +677,7 @@ with tab_compare_years:
                     df_2024,
                     score_column="percentage",
                     year_title="2024",
-                    gradient_colors=CONFIG[2024]["colors"],
+                    gradient_colors=CONFIG[2024]["gradient"],
                 )
             else:
                 st.warning("بيانات 2024 غير متوفرة")
@@ -582,7 +688,7 @@ with tab_compare_years:
                     df_2025,
                     score_column="percentage",
                     year_title="2025",
-                    gradient_colors=CONFIG[2025]["colors"],
+                    gradient_colors=CONFIG[2025]["gradient"],
                 )
             else:
                 st.warning("بيانات 2025 غير متوفرة")
@@ -593,7 +699,7 @@ with tab_compare_years:
                     df_2026,
                     score_column="percentage",
                     year_title="2026",
-                    gradient_colors=CONFIG[2026]["colors"],
+                    gradient_colors=CONFIG[2026]["gradient"],
                 )
             else:
                 st.warning("بيانات 2026 غير متوفرة")
@@ -609,7 +715,7 @@ with tab_compare_years:
                     df_2024,
                     score_column="percentage",
                     year_title="2024",
-                    gradient_colors=CONFIG[2024]["colors"],
+                    gradient_colors=CONFIG[2024]["gradient"],
                 )
             else:
                 st.warning("بيانات سنة 2024 غير متوفرة.")
@@ -620,7 +726,7 @@ with tab_compare_years:
                     df_2025,
                     score_column="percentage",
                     year_title="2025",
-                    gradient_colors=CONFIG[2025]["colors"],
+                    gradient_colors=CONFIG[2025]["gradient"],
                 )
             else:
                 st.warning("بيانات سنة 2025 غير متوفرة.")
@@ -631,7 +737,7 @@ with tab_compare_years:
                     df_2026,
                     score_column="percentage",
                     year_title="2026",
-                    gradient_colors=CONFIG[2026]["colors"],
+                    gradient_colors=CONFIG[2026]["gradient"],
                 )
             else:
                 st.warning("بيانات سنة 2026 غير متوفرة.")
