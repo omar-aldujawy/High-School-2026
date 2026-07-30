@@ -61,6 +61,7 @@ COLUMN_KEYWORDS = {
     "name": ["اسم", "name"],
     "total_degree": ["مجموع", "الدرجة", "الدرجه", "total_degree", "degree"],
     "student_case_desc": ["حالة الطالب", "الحالة", "student_case_desc", "status"],
+    "student_count": ["عدد", "طلاب", "العدد", "student_count", "count", "freq"],
 }
 
 
@@ -91,7 +92,7 @@ def get_student_status(row: pd.Series) -> str:
         row.get("student_case_desc", row.get("status", row.get("original_status", "")))
     ).strip()
 
-    # 1. فحص الدور الثاني أولاً (حتى لو النسبة أقل من 50%)
+    # 1. فحص الدور الثاني أولاً
     if any(kw in case_desc for kw in ["ثان", "تان", "ثاني", "تاني", "دور 2"]):
         return "⚠️ دور تاني"
 
@@ -111,8 +112,7 @@ def render_cyan_percentage_chart(
     gradient_colors=("4facfe", "00f2fe"),
 ):
     """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون متجاوب لكل سنة."""
-    total_count = len(df)
-    if total_count == 0:
+    if df.empty:
         st.warning(f"لا توجد بيانات متاحة لسنة {year_title}")
         return
 
@@ -135,7 +135,24 @@ def render_cyan_percentage_chart(
     df_copy["range"] = pd.cut(
         df_copy[score_column], bins=bins, labels=labels, right=False
     )
-    counts = df_copy["range"].value_counts().reindex(labels, fill_value=0)
+
+    # التحقق من وجود عمود أعداد الطلاب لجمعه بشكل صحيح
+    count_col = None
+    for c in ["student_count", "count", "freq"]:
+        if c in df_copy.columns:
+            count_col = c
+            break
+
+    if count_col and count_col != score_column:
+        df_copy[count_col] = pd.to_numeric(df_copy[count_col], errors="coerce").fillna(1)
+        counts = df_copy.groupby("range", observed=False)[count_col].sum().reindex(labels, fill_value=0)
+    else:
+        counts = df_copy["range"].value_counts().reindex(labels, fill_value=0)
+
+    total_count = int(counts.sum())
+    if total_count == 0:
+        st.warning(f"لا توجد بيانات متاحة لسنة {year_title}")
+        return
 
     color1, color2 = gradient_colors
 
@@ -247,7 +264,7 @@ def render_cyan_percentage_chart(
     for label in reversed(labels):
         count = counts[label]
         pct = (count / total_count * 100) if total_count > 0 else 0
-        formatted_count = f"{count/1000:.1f}K+" if count >= 1000 else str(count)
+        formatted_count = f"{count/1000:.1f}K+" if count >= 10000 else f"{count:,}"
 
         html_content += (
             '<div class="stat-row-cyan">'
@@ -556,15 +573,17 @@ with tab_compare_years:
                 df, _ = smart_rename(df, COLUMN_KEYWORDS)
 
                 if "total_degree" in df.columns:
+                    # تحديد عمود الطلاب
                     count_col = df.columns[1] if len(df.columns) > 1 else None
                     pcts = (df["total_degree"] / cfg["max_degree"]) * 100
 
                     if (
                         count_col
-                        and df[count_col].dtype in ["int64", "float64"]
                         and count_col != "name"
+                        and count_col != "total_degree"
                     ):
                         df["pct"] = pcts
+                        df[count_col] = pd.to_numeric(df[count_col], errors="coerce").fillna(1)
                         df["bin"] = pd.cut(df["pct"], bins=bins, include_lowest=True)
                         binned_series = df.groupby("bin", observed=False)[
                             count_col
@@ -651,7 +670,17 @@ with tab_compare_years:
             df, _ = smart_rename(df, COLUMN_KEYWORDS)
 
             if "total_degree" in df.columns:
+                df["total_degree"] = pd.to_numeric(df["total_degree"], errors="coerce")
                 df["percentage"] = (df["total_degree"] / cfg["max_degree"]) * 100
+                
+                # التأكد من تجهيز عمود student_count
+                if len(df.columns) > 1 and df.columns[1] != "percentage":
+                    count_col = df.columns[1]
+                    if count_col != "student_count":
+                        df["student_count"] = pd.to_numeric(df[count_col], errors="coerce").fillna(1)
+                else:
+                    df["student_count"] = 1
+
                 return df
         except Exception:
             pass
