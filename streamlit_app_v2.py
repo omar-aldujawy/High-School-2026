@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -103,6 +104,162 @@ def get_student_status(row: pd.Series) -> str:
     return "✅ ناجح"
 
 
+def render_cyan_percentage_chart(df, score_column):
+    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون لبني."""
+    total_count = len(df)
+
+    # الحدود: -1 لتمثيل ما أقل من 50، ثم خطوات بـ 5 حتى 90، و101 لتغطية 100%
+    bins = [-1, 50, 55, 60, 65, 70, 75, 80, 85, 90, 101]
+    labels = [
+        "below-50%",
+        "50-55%",
+        "55-60%",
+        "60-65%",
+        "65-70%",
+        "70-75%",
+        "75-80%",
+        "80-85%",
+        "85-90%",
+        "+90%",
+    ]
+
+    # تقسيم البيانات
+    df_copy = df.copy()
+    df_copy["range"] = pd.cut(
+        df_copy[score_column], bins=bins, labels=labels, right=False
+    )
+    counts = df_copy["range"].value_counts().reindex(labels, fill_value=0)
+
+    # تصميم CSS المخصص بلون لبني نيون بطاقة زجاجية
+    css = """
+    <style>
+    .stats-card-cyan {
+        background: linear-gradient(145deg, #0f172a, #1e293b);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-radius: 24px;
+        padding: 28px;
+        color: #f8fafc;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.05);
+        max-width: 600px;
+        margin: 20px auto;
+        direction: rtl;
+    }
+    .stats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .stats-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #38bdf8;
+        letter-spacing: 0.5px;
+    }
+    .stats-total {
+        font-size: 13px;
+        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 4px 12px;
+        border-radius: 12px;
+    }
+    .stat-row-cyan {
+        display: flex;
+        align-items: center;
+        margin-bottom: 14px;
+        direction: ltr;
+    }
+    .stat-label-cyan {
+        font-size: 13px;
+        font-weight: 600;
+        color: #cbd5e1;
+        width: 85px;
+        text-align: right;
+    }
+    .bar-container-cyan {
+        flex-grow: 1;
+        background-color: #090d16;
+        height: 10px;
+        border-radius: 20px;
+        margin: 0 14px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: flex-end;
+    }
+    .bar-fill-cyan {
+        background: linear-gradient(90deg, #00f2fe, #4facfe);
+        height: 100%;
+        border-radius: 20px;
+        box-shadow: 0 0 8px rgba(79, 172, 254, 0.6);
+    }
+    .stat-val-box {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 140px;
+        justify-content: flex-start;
+    }
+    .stat-count {
+        font-size: 13px;
+        font-weight: 700;
+        color: #ffffff;
+    }
+    .stat-pct-tag {
+        font-size: 11px;
+        font-weight: 600;
+        color: #38bdf8;
+        background: rgba(56, 189, 248, 0.12);
+        padding: 2px 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    </style>
+    """
+
+    # بناء عناصر الـ HTML
+    html_content = f"""
+    {css}
+    <div class="stats-card-cyan">
+        <div class="stats-header">
+            <div class="stats-title">توزيع النسب المئوية</div>
+            <div class="stats-total">الإجمالي: {total_count:,}</div>
+        </div>
+    """
+
+    # عرض الفئات من الأعلى للأسفل (+90% حتى below-50%)
+    for label in reversed(labels):
+        count = counts[label]
+        pct = (count / total_count * 100) if total_count > 0 else 0
+
+        # اختصار الأرقام الكبيرة
+        if count >= 1000:
+            formatted_count = f"{count/1000:.1f}K+"
+        else:
+            formatted_count = str(count)
+
+        html_content += f"""
+        <div class="stat-row-cyan">
+            <div class="stat-val-box">
+                <span class="stat-count">{formatted_count}</span>
+                <span class="stat-pct-tag">{pct:.2f}%</span>
+            </div>
+            <div class="bar-container-cyan">
+                <div class="bar-fill-cyan" style="width: {pct}%;"></div>
+            </div>
+            <div class="stat-label-cyan">{label}</div>
+        </div>
+        """
+
+    html_content += "</div>"
+
+    # عرض في Streamlit
+    st.markdown(html_content, unsafe_allow_html=True)
+
+
 @st.cache_data(ttl=3600)
 def load_results() -> pd.DataFrame:
     if not RESULTS_FILE.exists():
@@ -111,7 +268,6 @@ def load_results() -> pd.DataFrame:
     needed_cols = ["seating_no", "name", "total_degree", "max_degree", "percentage", "rank"]
     
     try:
-        # قراءة الأعمدة الأساسية فقط لتخفيض الذاكرة لأقل قدر ممكن
         df = pd.read_csv(
             RESULTS_FILE, 
             usecols=lambda c: c in needed_cols or c in ["year", "student_case_desc", "status"],
@@ -302,11 +458,15 @@ with tab_stats:
         fig_pass_pie.update_layout(height=400)
         st.plotly_chart(fig_pass_pie, width="stretch")
 
+    st.markdown("---")
+    # عرض بطاقة توزيع النسب المئوية المخصصة
+    render_cyan_percentage_chart(results, score_column="percentage")
+
 # =============================================================================
 # التبويب الرابع: مقارنة مع السنين السابقة
 # =============================================================================
 with tab_compare_years:
-    st.subheader("📈 مقارنة توزيع النسب المئوية للطلاب (2024 - 2025 - 2026)")
+    st.subheader("📈 مقارنة توزيع النسب المئوية للطلاب (2024 VS 2025 VS 2026)")
 
     YEARS = [2024, 2025, 2026]
     CONFIG = {
@@ -333,7 +493,7 @@ with tab_compare_years:
     @st.cache_data(ttl=3600)
     def load_and_bin_years():
         binned_data = {}
-        bins = list(range(0, 101, 5))
+        bins = list(range(0, 101, 10))
 
         for year in YEARS:
             cfg = CONFIG[year]
