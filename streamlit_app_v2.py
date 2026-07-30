@@ -20,20 +20,20 @@ st.set_page_config(
 
 # تطبيق اتجاه الكتابة من اليمين لليسار (RTL)
 st.markdown(
-    """
-    <style>
-    .stApp, .stMarkdown, .stMetric, h1, h2, h3, p, label { direction: rtl; text-align: right; }
-    [data-testid="stMetricValue"] { direction: ltr; }
-    .footer-text {
-        text-align: center;
-        padding: 15px;
-        font-weight: bold;
-        color: #555555;
-        border-top: 1px solid #e6e6e6;
-        margin-top: 30px;
-    }
-    </style>
-    """,
+    (
+        "<style>"
+        ".stApp, .stMarkdown, .stMetric, h1, h2, h3, p, label { direction: rtl; text-align: right; }"
+        "[data-testid=\"stMetricValue\"] { direction: ltr; }"
+        ".footer-text {"
+        "text-align: center;"
+        "padding: 15px;"
+        "font-weight: bold;"
+        "color: #555555;"
+        "border-top: 1px solid #e6e6e6;"
+        "margin-top: 30px;"
+        "}"
+        "</style>"
+    ),
     unsafe_allow_html=True,
 )
 
@@ -105,7 +105,13 @@ def get_student_status(row: pd.Series) -> str:
 
 
 def render_cyan_percentage_chart(df, score_column):
-    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون لبني مضبوطة الاتجاهات."""
+    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون لبني مضبوطة الاتجاهات.
+
+    ملاحظة مهمة: كل الأسطر بتتبني من غير أي مسافات بادئة (indentation) في بداية
+    السطر، لأن Streamlit's Markdown parser بيحول أي سطر يبدأ بـ 4 مسافات أو أكتر
+    إلى "code block" ويعرضه كنص خام بدل ما يفسّره كـ HTML. ده كان سبب الـ error
+    اللي كان بيظهر (الأكواد بتتعرض كنص بدل ما تترسم كـ bars).
+    """
     total_count = len(df)
 
     bins = [-1, 50, 55, 60, 65, 70, 75, 80, 85, 90, 101]
@@ -128,108 +134,108 @@ def render_cyan_percentage_chart(df, score_column):
     )
     counts = df_copy["range"].value_counts().reindex(labels, fill_value=0)
 
-    css = """
-    <style>
-    .stats-card-cyan {
-        background: linear-gradient(145deg, #0f172a, #1e293b);
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        border-radius: 24px;
-        padding: 28px;
-        color: #f8fafc;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.05);
-        max-width: 650px;
-        margin: 20px auto;
-        direction: rtl;
-        box-sizing: border-box;
-    }
-    .stats-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        direction: rtl;
-    }
-    .stats-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: #38bdf8;
-    }
-    .stats-total {
-        font-size: 13px;
-        color: #94a3b8;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 4px 12px;
-        border-radius: 12px;
-    }
-    .stat-row-cyan {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 14px;
-        direction: rtl;
-        gap: 10px;
-    }
-    .stat-label-cyan {
-        font-size: 13px;
-        font-weight: 600;
-        color: #cbd5e1;
-        width: 90px;
-        text-align: right;
-        direction: ltr;
-    }
-    .bar-container-cyan {
-        flex-grow: 1;
-        background-color: #090d16;
-        height: 10px;
-        border-radius: 20px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        display: flex;
-        justify-content: flex-start;
-        direction: ltr;
-    }
-    .bar-fill-cyan {
-        background: linear-gradient(90deg, #4facfe, #00f2fe);
-        height: 100%;
-        border-radius: 20px;
-        box-shadow: 0 0 8px rgba(79, 172, 254, 0.6);
-    }
-    .stat-val-box {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        width: 130px;
-        justify-content: flex-end;
-        direction: ltr;
-    }
-    .stat-count {
-        font-size: 13px;
-        font-weight: 700;
-        color: #ffffff;
-    }
-    .stat-pct-tag {
-        font-size: 11px;
-        font-weight: 600;
-        color: #38bdf8;
-        background: rgba(56, 189, 248, 0.12);
-        padding: 2px 8px;
-        border-radius: 8px;
-        border: 1px solid rgba(56, 189, 248, 0.2);
-    }
-    </style>
-    """
+    css = (
+        "<style>"
+        ".stats-card-cyan {"
+        "background: linear-gradient(145deg, #0f172a, #1e293b);"
+        "border: 1px solid rgba(56, 189, 248, 0.2);"
+        "border-radius: 24px;"
+        "padding: 28px;"
+        "color: #f8fafc;"
+        "font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;"
+        "box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.05);"
+        "max-width: 650px;"
+        "margin: 20px auto;"
+        "direction: rtl;"
+        "box-sizing: border-box;"
+        "}"
+        ".stats-header {"
+        "display: flex;"
+        "justify-content: space-between;"
+        "align-items: center;"
+        "margin-bottom: 25px;"
+        "padding-bottom: 12px;"
+        "border-bottom: 1px solid rgba(255, 255, 255, 0.1);"
+        "direction: rtl;"
+        "}"
+        ".stats-title {"
+        "font-size: 20px;"
+        "font-weight: 700;"
+        "color: #38bdf8;"
+        "}"
+        ".stats-total {"
+        "font-size: 13px;"
+        "color: #94a3b8;"
+        "background: rgba(255, 255, 255, 0.05);"
+        "padding: 4px 12px;"
+        "border-radius: 12px;"
+        "}"
+        ".stat-row-cyan {"
+        "display: flex;"
+        "align-items: center;"
+        "justify-content: space-between;"
+        "margin-bottom: 14px;"
+        "direction: rtl;"
+        "gap: 10px;"
+        "}"
+        ".stat-label-cyan {"
+        "font-size: 13px;"
+        "font-weight: 600;"
+        "color: #cbd5e1;"
+        "width: 90px;"
+        "text-align: right;"
+        "direction: ltr;"
+        "}"
+        ".bar-container-cyan {"
+        "flex-grow: 1;"
+        "background-color: #090d16;"
+        "height: 10px;"
+        "border-radius: 20px;"
+        "overflow: hidden;"
+        "border: 1px solid rgba(255, 255, 255, 0.05);"
+        "display: flex;"
+        "justify-content: flex-start;"
+        "direction: ltr;"
+        "}"
+        ".bar-fill-cyan {"
+        "background: linear-gradient(90deg, #4facfe, #00f2fe);"
+        "height: 100%;"
+        "border-radius: 20px;"
+        "box-shadow: 0 0 8px rgba(79, 172, 254, 0.6);"
+        "}"
+        ".stat-val-box {"
+        "display: flex;"
+        "align-items: center;"
+        "gap: 6px;"
+        "width: 130px;"
+        "justify-content: flex-end;"
+        "direction: ltr;"
+        "}"
+        ".stat-count {"
+        "font-size: 13px;"
+        "font-weight: 700;"
+        "color: #ffffff;"
+        "}"
+        ".stat-pct-tag {"
+        "font-size: 11px;"
+        "font-weight: 600;"
+        "color: #38bdf8;"
+        "background: rgba(56, 189, 248, 0.12);"
+        "padding: 2px 8px;"
+        "border-radius: 8px;"
+        "border: 1px solid rgba(56, 189, 248, 0.2);"
+        "}"
+        "</style>"
+    )
 
-    html_content = f"""
-    {css}
-    <div class="stats-card-cyan">
-        <div class="stats-header">
-            <div class="stats-title">توزيع النسب المئوية</div>
-            <div class="stats-total">الإجمالي: {total_count:,}</div>
-        </div>
-    """
+    html_content = (
+        css
+        + '<div class="stats-card-cyan">'
+        + '<div class="stats-header">'
+        + '<div class="stats-title">توزيع النسب المئوية</div>'
+        + f'<div class="stats-total">الإجمالي: {total_count:,}</div>'
+        + "</div>"
+    )
 
     for label in reversed(labels):
         count = counts[label]
@@ -240,18 +246,18 @@ def render_cyan_percentage_chart(df, score_column):
         else:
             formatted_count = str(count)
 
-        html_content += f"""
-        <div class="stat-row-cyan">
-            <div class="stat-label-cyan">{label}</div>
-            <div class="bar-container-cyan">
-                <div class="bar-fill-cyan" style="width: {pct}%;"></div>
-            </div>
-            <div class="stat-val-box">
-                <span class="stat-count">{formatted_count}</span>
-                <span class="stat-pct-tag">{pct:.2f}%</span>
-            </div>
-        </div>
-        """
+        html_content += (
+            '<div class="stat-row-cyan">'
+            f'<div class="stat-label-cyan">{label}</div>'
+            '<div class="bar-container-cyan">'
+            f'<div class="bar-fill-cyan" style="width: {pct}%;"></div>'
+            "</div>"
+            '<div class="stat-val-box">'
+            f'<span class="stat-count">{formatted_count}</span>'
+            f'<span class="stat-pct-tag">{pct:.2f}%</span>'
+            "</div>"
+            "</div>"
+        )
 
     html_content += "</div>"
 
@@ -612,8 +618,6 @@ st.markdown(
     "<div class='footer-text'>مع تحيات<br>MDKLi Team @2026</div>",
     unsafe_allow_html=True,
 )
-
-
 
 
 # streamlit run streamlit_app_v2.py
