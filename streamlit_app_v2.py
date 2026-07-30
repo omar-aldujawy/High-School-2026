@@ -91,11 +91,11 @@ def get_student_status(row: pd.Series) -> str:
         row.get("student_case_desc", row.get("status", row.get("original_status", "")))
     ).strip()
 
-    # 1. البحث عن الدور الثاني أولاً
+    # 1. فحص الدور الثاني أولاً (حتى لو النسبة أقل من 50%)
     if any(kw in case_desc for kw in ["ثان", "تان", "ثاني", "تاني", "دور 2"]):
         return "⚠️ دور تاني"
 
-    # 2. شرط أقل من 50% ساقط
+    # 2. شرط أقل من 50% أو راسب صريح = ساقط
     pct = float(row.get("percentage", 0))
     if pct < 50 or any(kw in case_desc for kw in ["راسب", "ساقط"]):
         return "🔴 ساقط"
@@ -104,9 +104,17 @@ def get_student_status(row: pd.Series) -> str:
     return "✅ ناجح"
 
 
-def render_cyan_percentage_chart(df, score_column):
-    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون لبني متجاوب."""
+def render_cyan_percentage_chart(
+    df,
+    score_column="percentage",
+    year_title="2026",
+    gradient_colors=("4facfe", "00f2fe"),
+):
+    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون متجاوب لكل سنة."""
     total_count = len(df)
+    if total_count == 0:
+        st.warning(f"لا توجد بيانات متاحة لسنة {year_title}")
+        return
 
     bins = [-1, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 101]
     labels = [
@@ -129,132 +137,132 @@ def render_cyan_percentage_chart(df, score_column):
     )
     counts = df_copy["range"].value_counts().reindex(labels, fill_value=0)
 
-    css = (
-        "<style>"
-        ".stats-card-cyan {"
-        "background: linear-gradient(145deg, #0f172a, #1e293b);"
-        "border: 1px solid rgba(56, 189, 248, 0.25);"
-        "border-radius: 20px;"
-        "padding: 24px;"
-        "color: #f8fafc;"
-        "font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;"
-        "box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.08);"
-        "max-width: 680px;"
-        "margin: 20px auto;"
-        "direction: rtl;"
-        "box-sizing: border-box;"
-        "}"
-        ".stats-header {"
-        "display: flex;"
-        "justify-content: space-between;"
-        "align-items: center;"
-        "margin-bottom: 20px;"
-        "padding-bottom: 10px;"
-        "border-bottom: 1px solid rgba(255, 255, 255, 0.1);"
-        "direction: rtl;"
-        "}"
-        ".stats-title {"
-        "font-size: 18px;"
-        "font-weight: 700;"
-        "color: #38bdf8;"
-        "}"
-        ".stats-total {"
-        "font-size: 13px;"
-        "color: #94a3b8;"
-        "background: rgba(255, 255, 255, 0.05);"
-        "padding: 4px 12px;"
-        "border-radius: 10px;"
-        "}"
-        ".stat-row-cyan {"
-        "display: flex;"
-        "align-items: center;"
-        "justify-content: space-between;"
-        "margin-bottom: 12px;"
-        "direction: rtl;"
-        "gap: 12px;"
-        "}"
-        ".stat-label-cyan {"
-        "font-size: 12px;"
-        "font-weight: 600;"
-        "color: #cbd5e1;"
-        "width: 85px;"
-        "text-align: right;"
-        "direction: ltr;"
-        "flex-shrink: 0;"
-        "}"
-        ".bar-container-cyan {"
-        "flex-grow: 1;"
-        "background-color: #090d16;"
-        "height: 10px;"
-        "border-radius: 20px;"
-        "overflow: hidden;"
-        "border: 1px solid rgba(255, 255, 255, 0.05);"
-        "display: flex;"
-        "justify-content: flex-start;"
-        "direction: ltr;"
-        "}"
-        ".bar-fill-cyan {"
-        "background: linear-gradient(90deg, #4facfe, #00f2fe);"
-        "height: 100%;"
-        "border-radius: 20px;"
-        "box-shadow: 0 0 8px rgba(79, 172, 254, 0.6);"
-        "}"
-        ".stat-val-box {"
-        "display: flex;"
-        "align-items: center;"
-        "gap: 6px;"
-        "width: 120px;"
-        "justify-content: flex-end;"
-        "direction: ltr;"
-        "flex-shrink: 0;"
-        "}"
-        ".stat-count {"
-        "font-size: 12px;"
-        "font-weight: 700;"
-        "color: #ffffff;"
-        "}"
-        ".stat-pct-tag {"
-        "font-size: 11px;"
-        "font-weight: 600;"
-        "color: #38bdf8;"
-        "background: rgba(56, 189, 248, 0.12);"
-        "padding: 2px 6px;"
-        "border-radius: 6px;"
-        "border: 1px solid rgba(56, 189, 248, 0.2);"
-        "}"
-        "</style>"
-    )
+    color1, color2 = gradient_colors
+
+    css = f"""
+    <style>
+    .stats-card-cyan-{year_title} {{
+        background: linear-gradient(145deg, #0f172a, #1e293b);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 20px;
+        padding: 20px;
+        color: #f8fafc;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.08);
+        width: 100%;
+        margin: 10px auto 20px auto;
+        direction: rtl;
+        box-sizing: border-box;
+    }}
+    .stats-header {{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        direction: rtl;
+    }}
+    .stats-title {{
+        font-size: 16px;
+        font-weight: 700;
+        color: #{color2};
+    }}
+    .stats-total {{
+        font-size: 12px;
+        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 4px 10px;
+        border-radius: 8px;
+    }}
+    .stat-row-cyan {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        direction: rtl;
+        gap: 8px;
+    }}
+    .stat-label-cyan {{
+        font-size: 11px;
+        font-weight: 600;
+        color: #cbd5e1;
+        width: 75px;
+        text-align: right;
+        direction: ltr;
+        flex-shrink: 0;
+    }}
+    .bar-container-cyan {{
+        flex-grow: 1;
+        background-color: #090d16;
+        height: 9px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: flex-start;
+        direction: ltr;
+    }}
+    .bar-fill-cyan-{year_title} {{
+        background: linear-gradient(90deg, #{color1}, #{color2});
+        height: 100%;
+        border-radius: 20px;
+        box-shadow: 0 0 8px rgba(79, 172, 254, 0.5);
+    }}
+    .stat-val-box {{
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        width: 105px;
+        justify-content: flex-end;
+        direction: ltr;
+        flex-shrink: 0;
+    }}
+    .stat-count {{
+        font-size: 11px;
+        font-weight: 700;
+        color: #ffffff;
+    }}
+    .stat-pct-tag-{year_title} {{
+        font-size: 10px;
+        font-weight: 600;
+        color: #{color2};
+        background: rgba(56, 189, 248, 0.12);
+        padding: 2px 5px;
+        border-radius: 5px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+    }}
+    </style>
+    """
 
     html_content = (
         css
-        + '<div class="stats-card-cyan">'
+        + f'<div class="stats-card-cyan-{year_title}">'
         + '<div class="stats-header">'
-        + '<div class="stats-title">📊 توزيع النسب المئوية للطلاب</div>'
-        + f'<div class="stats-total">الإجمالي: {total_count:,} طالب</div>'
+        + f'<div class="stats-title">📊 النسب المئوية ({year_title})</div>'
+        + f'<div class="stats-total">العدد: {total_count:,}</div>'
         + "</div>"
     )
 
     for label in reversed(labels):
         count = counts[label]
         pct = (count / total_count * 100) if total_count > 0 else 0
-
         formatted_count = f"{count/1000:.1f}K+" if count >= 1000 else str(count)
 
         html_content += (
             '<div class="stat-row-cyan">'
             f'<div class="stat-label-cyan">{label}</div>'
             '<div class="bar-container-cyan">'
-            f'<div class="bar-fill-cyan" style="width: {pct}%;"></div>'
+            f'<div class="bar-fill-cyan-{year_title}" style="width: {pct}%;"></div>'
             "</div>"
             '<div class="stat-val-box">'
             f'<span class="stat-count">{formatted_count}</span>'
-            f'<span class="stat-pct-tag">{pct:.2f}%</span>'
+            f'<span class="stat-pct-tag-{year_title}">{pct:.2f}%</span>'
             "</div>"
             "</div>"
         )
 
     html_content += "</div>"
-
     st.markdown(html_content, unsafe_allow_html=True)
 
 
@@ -488,125 +496,145 @@ with tab_stats:
         st.plotly_chart(fig_pass_pie, use_container_width=True)
 
     st.markdown("---")
-    # عرض بطاقة توزيع النسب المئوية المخصصة
-    render_cyan_percentage_chart(results, score_column="percentage")
+    # عرض بطاقة توزيع النسب المئوية لسنة 2026
+    render_cyan_percentage_chart(
+        results, score_column="percentage", year_title="2026"
+    )
 
 # =============================================================================
-# التبويب الرابع: مقارنة مع السنين السابقة
+# التبويب الرابع: مقارنة مع السنين السابقة (بطاقات منفصلة)
 # =============================================================================
 with tab_compare_years:
-    st.subheader("📈 مقارنة توزيع النسب المئوية للطلاب (2024 VS 2025 VS 2026)")
+    st.subheader("📈 توزيع النسب المئوية لكل سنة على حدة (2024 - 2025 - 2026)")
 
-    YEARS = [2024, 2025, 2026]
     CONFIG = {
         2024: {
             "file": "mat_2024.csv",
             "max_degree": 410,
-            "color": "#636EFA",
-            "encoding": "utf-8",
+            "colors": ("636efa", "a8b1ff"),  # أزرق بنفسجي
         },
         2025: {
             "file": "mat_2025.csv",
             "max_degree": 320,
-            "color": "#EF553B",
-            "encoding": "utf-8",
+            "colors": ("ef553b", "ff9e8d"),  # برتقالي محمر
         },
         2026: {
             "file": "mat_2026.csv",
             "max_degree": 320,
-            "color": "#00CC96",
-            "encoding": "utf-8",
+            "colors": ("00cc96", "73ffda"),  # أخضر نيون
         },
     }
 
     @st.cache_data(ttl=3600)
-    def load_and_bin_years():
-        binned_data = {}
-        bins = list(range(0, 101, 10))
+    def load_year_df(year):
+        cfg = CONFIG[year]
+        file_path = APP_DIR / cfg["file"]
 
-        for year in YEARS:
-            cfg = CONFIG[year]
-            file_path = APP_DIR / cfg["file"]
+        if year == TARGET_YEAR and not results.empty:
+            return results
 
-            if not file_path.exists():
-                continue
+        if not file_path.exists():
+            return pd.DataFrame()
 
+        try:
             try:
-                try:
-                    df = pd.read_csv(file_path, encoding=cfg["encoding"])
-                except Exception:
-                    df = pd.read_csv(file_path, encoding="cp1256")
-
-                df, _ = smart_rename(df, COLUMN_KEYWORDS)
-
-                if "total_degree" in df.columns:
-                    count_col = df.columns[1] if len(df.columns) > 1 else None
-                    pcts = (df["total_degree"] / cfg["max_degree"]) * 100
-
-                    if (
-                        count_col
-                        and df[count_col].dtype in ["int64", "float64"]
-                        and count_col != "name"
-                    ):
-                        df["pct"] = pcts
-                        df["bin"] = pd.cut(df["pct"], bins=bins, include_lowest=True)
-                        binned_series = df.groupby("bin", observed=False)[
-                            count_col
-                        ].sum()
-                    else:
-                        binned_series = (
-                            pd.cut(pcts, bins=bins, include_lowest=True)
-                            .value_counts()
-                            .sort_index()
-                        )
-
-                    binned_data[year] = binned_series
+                df = pd.read_csv(file_path, encoding="utf-8")
             except Exception:
-                pass
+                df = pd.read_csv(file_path, encoding="cp1256")
 
-        return binned_data
+            df, _ = smart_rename(df, COLUMN_KEYWORDS)
 
-    binned = load_and_bin_years()
+            if "total_degree" in df.columns:
+                df["percentage"] = (df["total_degree"] / cfg["max_degree"]) * 100
+                return df
+        except Exception:
+            pass
 
-    if binned and len(binned) > 0:
-        available_years = list(binned.keys())
-        ref_year = available_years[0]
-        ranges = [
-            f"{int(i.left)}–{int(i.right)}" for i in binned[ref_year].index
-        ]
+        return pd.DataFrame()
 
-        fig = go.Figure(
-            data=[
-                go.Bar(
-                    name=str(year),
-                    x=ranges,
-                    y=binned[year].values,
-                    marker_color=CONFIG[year]["color"],
-                    hovertemplate=(
-                        f"{year}<br>النسبة: %{{x}}%<br>عدد الطلاب:"
-                        " %{y:,}<extra></extra>"
-                    ),
+    df_2024 = load_year_df(2024)
+    df_2025 = load_year_df(2025)
+    df_2026 = load_year_df(2026)
+
+    view_option = st.radio(
+        "طريقة عرض المقارنة:",
+        ["بطاقات منفصلة جنبًا إلى جنب (3 أعمدة)", "تبويبات منفصلة لكل سنة"],
+        horizontal=True,
+    )
+
+    if view_option == "بطاقات منفصلة جنبًا إلى جنب (3 أعمدة)":
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            if not df_2024.empty:
+                render_cyan_percentage_chart(
+                    df_2024,
+                    score_column="percentage",
+                    year_title="2024",
+                    gradient_colors=CONFIG[2024]["colors"],
                 )
-                for year in available_years
-            ]
-        )
+            else:
+                st.warning("بيانات 2024 غير متوفرة")
 
-        fig.update_layout(
-            title="<b>توزيع النسبة المئوية عبر السنوات</b>",
-            xaxis_title="نطاق النسبة المئوية (%)",
-            yaxis_title="عدد الطلاب",
-            barmode="group",
-            template="plotly_white",
-            hovermode="x",
-            height=500,
-        )
+        with c2:
+            if not df_2025.empty:
+                render_cyan_percentage_chart(
+                    df_2025,
+                    score_column="percentage",
+                    year_title="2025",
+                    gradient_colors=CONFIG[2025]["colors"],
+                )
+            else:
+                st.warning("بيانات 2025 غير متوفرة")
 
-        st.plotly_chart(fig, use_container_width=True)
+        with c3:
+            if not df_2026.empty:
+                render_cyan_percentage_chart(
+                    df_2026,
+                    score_column="percentage",
+                    year_title="2026",
+                    gradient_colors=CONFIG[2026]["colors"],
+                )
+            else:
+                st.warning("بيانات 2026 غير متوفرة")
+
     else:
-        st.warning(
-            "ملفات المقارنة (`mat_2024.csv`, `mat_2025.csv`, `mat_2026.csv`) غير"
-            " متوفرة أو بها مشكلة في التنسيق لعرض المقارنة."
+        tab_24, tab_25, tab_26 = st.tabs(
+            ["📅 سنة 2024", "📅 سنة 2025", "📅 سنة 2026"]
         )
+
+        with tab_24:
+            if not df_2024.empty:
+                render_cyan_percentage_chart(
+                    df_2024,
+                    score_column="percentage",
+                    year_title="2024",
+                    gradient_colors=CONFIG[2024]["colors"],
+                )
+            else:
+                st.warning("بيانات سنة 2024 غير متوفرة.")
+
+        with tab_25:
+            if not df_2025.empty:
+                render_cyan_percentage_chart(
+                    df_2025,
+                    score_column="percentage",
+                    year_title="2025",
+                    gradient_colors=CONFIG[2025]["colors"],
+                )
+            else:
+                st.warning("بيانات سنة 2025 غير متوفرة.")
+
+        with tab_26:
+            if not df_2026.empty:
+                render_cyan_percentage_chart(
+                    df_2026,
+                    score_column="percentage",
+                    year_title="2026",
+                    gradient_colors=CONFIG[2026]["colors"],
+                )
+            else:
+                st.warning("بيانات سنة 2026 غير متوفرة.")
 
 # =============================================================================
 # الحقوق والتوقيع (Footer)
@@ -616,6 +644,5 @@ st.markdown(
     "<div class='footer-text'>مع تحيات<br>MDKLi Team @2026</div>",
     unsafe_allow_html=True,
 )
-
 
 # streamlit run streamlit_app_v2.py
