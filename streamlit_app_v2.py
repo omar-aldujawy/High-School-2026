@@ -125,7 +125,8 @@ def render_cyan_percentage_chart(df, score_column):
         "75-80%",
         "80-85%",
         "85-90%",
-        "+90%",
+        "90-95%",
+        "95-100%",
     ]
 
     df_copy = df.copy()
