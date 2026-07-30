@@ -105,10 +105,9 @@ def get_student_status(row: pd.Series) -> str:
 
 
 def render_cyan_percentage_chart(df, score_column):
-    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون لبني."""
+    """دالة رسم بطاقة إحصائيات توزيع النسب المئوية بتصميم نيون لبني مضبوطة الاتجاهات."""
     total_count = len(df)
 
-    # الحدود: -1 لتمثيل ما أقل من 50، ثم خطوات بـ 5 حتى 90، و101 لتغطية 100%
     bins = [-1, 50, 55, 60, 65, 70, 75, 80, 85, 90, 101]
     labels = [
         "below-50%",
@@ -123,14 +122,12 @@ def render_cyan_percentage_chart(df, score_column):
         "+90%",
     ]
 
-    # تقسيم البيانات
     df_copy = df.copy()
     df_copy["range"] = pd.cut(
         df_copy[score_column], bins=bins, labels=labels, right=False
     )
     counts = df_copy["range"].value_counts().reindex(labels, fill_value=0)
 
-    # تصميم CSS المخصص بلون لبني نيون بطاقة زجاجية
     css = """
     <style>
     .stats-card-cyan {
@@ -141,9 +138,10 @@ def render_cyan_percentage_chart(df, score_column):
         color: #f8fafc;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.05);
-        max-width: 600px;
+        max-width: 650px;
         margin: 20px auto;
         direction: rtl;
+        box-sizing: border-box;
     }
     .stats-header {
         display: flex;
@@ -152,12 +150,12 @@ def render_cyan_percentage_chart(df, score_column):
         margin-bottom: 25px;
         padding-bottom: 12px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        direction: rtl;
     }
     .stats-title {
         font-size: 20px;
         font-weight: 700;
         color: #38bdf8;
-        letter-spacing: 0.5px;
     }
     .stats-total {
         font-size: 13px;
@@ -169,29 +167,32 @@ def render_cyan_percentage_chart(df, score_column):
     .stat-row-cyan {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         margin-bottom: 14px;
-        direction: ltr;
+        direction: rtl;
+        gap: 10px;
     }
     .stat-label-cyan {
         font-size: 13px;
         font-weight: 600;
         color: #cbd5e1;
-        width: 85px;
+        width: 90px;
         text-align: right;
+        direction: ltr;
     }
     .bar-container-cyan {
         flex-grow: 1;
         background-color: #090d16;
         height: 10px;
         border-radius: 20px;
-        margin: 0 14px;
         overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.05);
         display: flex;
-        justify-content: flex-end;
+        justify-content: flex-start;
+        direction: ltr;
     }
     .bar-fill-cyan {
-        background: linear-gradient(90deg, #00f2fe, #4facfe);
+        background: linear-gradient(90deg, #4facfe, #00f2fe);
         height: 100%;
         border-radius: 20px;
         box-shadow: 0 0 8px rgba(79, 172, 254, 0.6);
@@ -200,8 +201,9 @@ def render_cyan_percentage_chart(df, score_column):
         display: flex;
         align-items: center;
         gap: 6px;
-        width: 140px;
-        justify-content: flex-start;
+        width: 130px;
+        justify-content: flex-end;
+        direction: ltr;
     }
     .stat-count {
         font-size: 13px;
@@ -220,7 +222,6 @@ def render_cyan_percentage_chart(df, score_column):
     </style>
     """
 
-    # بناء عناصر الـ HTML
     html_content = f"""
     {css}
     <div class="stats-card-cyan">
@@ -230,12 +231,10 @@ def render_cyan_percentage_chart(df, score_column):
         </div>
     """
 
-    # عرض الفئات من الأعلى للأسفل (+90% حتى below-50%)
     for label in reversed(labels):
         count = counts[label]
         pct = (count / total_count * 100) if total_count > 0 else 0
 
-        # اختصار الأرقام الكبيرة
         if count >= 1000:
             formatted_count = f"{count/1000:.1f}K+"
         else:
@@ -243,20 +242,19 @@ def render_cyan_percentage_chart(df, score_column):
 
         html_content += f"""
         <div class="stat-row-cyan">
+            <div class="stat-label-cyan">{label}</div>
+            <div class="bar-container-cyan">
+                <div class="bar-fill-cyan" style="width: {pct}%;"></div>
+            </div>
             <div class="stat-val-box">
                 <span class="stat-count">{formatted_count}</span>
                 <span class="stat-pct-tag">{pct:.2f}%</span>
             </div>
-            <div class="bar-container-cyan">
-                <div class="bar-fill-cyan" style="width: {pct}%;"></div>
-            </div>
-            <div class="stat-label-cyan">{label}</div>
         </div>
         """
 
     html_content += "</div>"
 
-    # عرض في Streamlit
     st.markdown(html_content, unsafe_allow_html=True)
 
 
@@ -577,7 +575,6 @@ st.markdown(
     "<div class='footer-text'>مع تحيات<br>MDKLi Team @2026</div>",
     unsafe_allow_html=True,
 )
-
 
 
 
